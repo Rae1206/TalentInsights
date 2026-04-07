@@ -1,36 +1,38 @@
 using Application;
 using Domain;
-using Scalar.AspNetCore;
+using Serilog;
 using WebApi.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+// Logger de arranque para errores durante el inicio
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
-
-// Register dependencies by layer
-builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructure(builder.Configuration);
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+try
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.WithTitle("Twitter API Documentation");
-        options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
+    Log.Information("Iniciando Twitter Web API");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Configuración infraestructura
+    builder.ConfigureSerilog();
+    builder.Services.AddControllers();
+    builder.Services.AddOpenApi();
+    builder.Services.AddApplicationServices();
+    builder.Services.AddInfrastructure(builder.Configuration);
+
+    var app = builder.Build();
+
+    // Configurar pipeline
+    app.ConfigurePipeline();
+
+    app.Run();
 }
-
-app.UseErrorHandler();
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "La aplicación terminó de forma inesperada");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

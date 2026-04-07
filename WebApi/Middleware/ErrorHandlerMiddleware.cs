@@ -1,30 +1,20 @@
-using System.Net;
-using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Constants;
+using Shared.Exceptions;
 
 namespace WebApi.Middleware;
-
-public class ErrorResponse
-{
-    public int StatusCode { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? Details { get; set; }
-    public DateTime Timestamp { get; set; }
-}
 
 public class ErrorHandlerMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ErrorHandlerMiddleware> _logger;
-    private readonly IHostEnvironment _environment;
 
     public ErrorHandlerMiddleware(
         RequestDelegate next,
-        ILogger<ErrorHandlerMiddleware> logger,
-        IHostEnvironment environment)
+        ILogger<ErrorHandlerMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -35,8 +25,15 @@ public class ErrorHandlerMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception for {Method} {Path}",
-                context.Request.Method, context.Request.Path);
+            _logger.LogError(
+                ex,
+                "[{TraceId}] Error no controlado | {Method} {Path} | User: {UserId} | IP: {ClientIp} | ExceptionType: {ExceptionType}",
+                context.TraceIdentifier,
+                context.Request.Method,
+                context.Request.Path,
+                context.User.Identity?.Name ?? "Anónimo",
+                context.Connection.RemoteIpAddress?.ToString() ?? "Desconocida",
+                ex.GetType().Name);
 
             await HandleExceptionAsync(context, ex);
         }
@@ -44,47 +41,72 @@ public class ErrorHandlerMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = "application/json";
+        var traceId = context.TraceIdentifier;
 
-        var response = exception switch
+        var problem = exception switch
         {
-            KeyNotFoundException => new ErrorResponse
+            ResourceNotFoundException ex => new ProblemDetails
             {
-                StatusCode = (int)HttpStatusCode.NotFound,
-                Message = "Resource not found",
-                Details = exception.Message,
-                Timestamp = DateTime.UtcNow
+                Status = StatusCodes.Status404NotFound,
+                Title = "Recurso no encontrado",
+                Detail = ex.Message
             },
-            ArgumentException => new ErrorResponse
+            ValidationException ex => new ValidationProblemDetails(ex.Errors)
             {
-                StatusCode = (int)HttpStatusCode.BadRequest,
-                Message = "Invalid argument",
-                Details = exception.Message,
-                Timestamp = DateTime.UtcNow
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Error de validación",
+                Detail = ex.Message
             },
-            UnauthorizedAccessException => new ErrorResponse
+            ConflictException ex => new ProblemDetails
             {
-                StatusCode = (int)HttpStatusCode.Unauthorized,
-                Message = "Unauthorized access",
-                Details = _environment.IsDevelopment() ? exception.Message : null,
-                Timestamp = DateTime.UtcNow
+                Status = StatusCodes.Status409Conflict,
+                Title = "Conflicto",
+                Detail = ex.Message
             },
-            _ => new ErrorResponse
+            AlreadyExistsException ex => new ProblemDetails
             {
-                StatusCode = (int)HttpStatusCode.InternalServerError,
-                Message = "An internal server error occurred",
-                Details = _environment.IsDevelopment() ? exception.Message : null,
-                Timestamp = DateTime.UtcNow
+                Status = StatusCodes.Status409Conflict,
+                Title = "Recurso ya existente",
+                Detail = ex.Message
+            },
+            ForbiddenException ex => new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = "Acceso denegado",
+                Detail = ex.Message
+            },
+            KeyNotFoundException => new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Recurso no encontrado",
+                Detail = ErrorConstants.RESOURCE_NOT_FOUND      
+            },
+            ArgumentException => new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Argumento inválido",
+                Detail = exception.Message
+            },
+            UnauthorizedAccessException => new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "No autorizado",
+                Detail = ErrorConstants.UNAUTHORIZED
+            },
+            _ => new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Error interno del servidor",
+                Detail = string.Format(ErrorConstants.UNEXPECTED_ERROR, traceId)
             }
         };
 
-        context.Response.StatusCode = response.StatusCode;
+        problem.Extensions["traceId"] = traceId;
+        problem.Extensions["timestamp"] = DateTime.UtcNow.ToString("o");
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
 
-        await context.Response.WriteAsJsonAsync(response, options);
+        await context.Response.WriteAsJsonAsync(problem);
     }
 }
