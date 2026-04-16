@@ -1,4 +1,4 @@
-using WebApi.Middleware;
+using WebApi.Middlewares;
 
 namespace WebApi.Extensions;
 

@@ -1,5 +1,4 @@
-using Application;
-using Domain;
+using Twitter.Domain.Database.SqlServer;
 using Serilog;
 using WebApi.Extensions;
 
@@ -14,14 +13,16 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+    // Cargar configuración de secret.json
+    builder.Configuration.AddJsonFile("secret.json", optional: true, reloadOnChange: true);
+
     // Configuración infraestructura
     builder.ConfigureSerilog();
     builder.Services.AddControllers();
     builder.Services.AddOpenApi();
-    builder.Services.AddMemoryCache();  // Registra IMemoryCache para el servicio de caché
-    builder.Services.AddApplicationServices();
+
+    // TODA la infraestructura consolidada (DbContext, Cache, Repositorios, Servicios, JWT)
     builder.Services.AddInfrastructure(builder.Configuration);
-    builder.Services.AddJwtAuthentication(builder.Configuration);
 
     var app = builder.Build();
 

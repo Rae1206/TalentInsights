@@ -9,14 +9,14 @@ namespace WebApi.Controllers;
 public class PostController(IPostService postService) : ControllerBase
 {
     [HttpPost("create")]
-    public IActionResult CreatePost([FromBody] CreatePostRequest model)
+    public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest model)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var post = postService.Create(model);
+        var post = await postService.Create(model);
         return CreatedAtAction(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
@@ -35,33 +35,33 @@ public class PostController(IPostService postService) : ControllerBase
     }
 
     [HttpPut("{id:guid}/update")]
-    public IActionResult UpdatePost([FromBody] UpdatePostRequest model, Guid id)
+    public async Task<IActionResult> UpdatePost([FromBody] UpdatePostRequest model, Guid id)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var post = postService.Update(id, model);
+        var post = await postService.Update(id, model);
         return Ok(post);
     }
 
     [HttpPatch("{id:guid}/change-status")]
-    public IActionResult ChangePostStatus(Guid id, [FromBody] ChangePostStatusRequest model)
+    public async Task<IActionResult> ChangePostStatus(Guid id, [FromBody] ChangePostStatusRequest model)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        postService.ChangeStatus(id, model);
+        await postService.ChangeStatus(id, model);
         return NoContent();
     }
 
     [HttpDelete("{id:guid}/delete")]
-    public IActionResult DeletePost(Guid id)
+    public async Task<IActionResult> DeletePost(Guid id)
     {
-        postService.Delete(id);
+        await postService.Delete(id);
         return NoContent();
     }
 }

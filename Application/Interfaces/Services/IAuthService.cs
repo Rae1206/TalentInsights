@@ -1,36 +1,27 @@
-using Application.Models.DTOs;
-using Application.Models.Requests.User;
+using Application.Models.Requests.Auth;
 using Application.Models.Responses;
+using Application.Models.Responses.Auth;
 
 namespace Application.Interfaces.Services;
 
 /// <summary>
 /// Interfaz del servicio de autenticación.
-/// Gestiona login/logout y tokens JWT con rotación automática cada 1-5 min.
-/// La sesión total dura 24 horas desde el login.
+/// Gestiona login/logout y tokens JWT con refresh tokens.
 /// </summary>
 public interface IAuthService
 {
     /// <summary>
     /// Inicia sesión con las credenciales proporcionadas.
-    /// Crea una sesión de 24 horas con token inicial.
+    /// Devuelve un token JWT y un refresh token.
     /// </summary>
-    LoginResponse Login(LoginUserRequest model);
+    /// <param name="model">Credenciales del usuario</param>
+    /// <returns>LoginAuthResponse con token y refreshToken</returns>
+    GenericResponse<LoginAuthResponse> Login(LoginAuthRequest model);
 
     /// <summary>
-    /// Obtiene el token actual o lo rota automáticamente si expiró (cada 1-5 min).
-    /// Si la sesión de 24 horas expiró, lanza excepción.
+    /// Renueva el token de acceso usando un refresh token válido.
     /// </summary>
-    /// <returns>TokenResult con el token y si fue rotado</returns>
-    TokenResult GetOrRotateToken(Guid userId);
-
-    /// <summary>
-    /// Obtiene el token en caché sin rotar (para lectura pura).
-    /// </summary>
-    string? GetCachedToken(Guid userId);
-
-    /// <summary>
-    /// Invalida la sesión completamente (logout).
-    /// </summary>
-    bool InvalidateTokenCache(Guid userId);
+    /// <param name="model">Refresh token</param>
+    /// <returns>Nuevo LoginAuthResponse con token y refreshToken</returns>
+    GenericResponse<LoginAuthResponse> Renew(RenewAuthRequest model);
 }

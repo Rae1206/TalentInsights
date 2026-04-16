@@ -1,56 +1,54 @@
 using Application.Models.Helpers;
+using Microsoft.Extensions.Configuration;
+using Shared.Constants;
 
 namespace Application.Helpers;
 
 /// <summary>
-/// Helper estático para generar claves de caché tipadas y con expiración.
+/// Helper estático para generar claves de caché para autenticación.
 /// </summary>
 public static class CacheHelper
 {
     /// <summary>
-    /// Genera una clave de caché para tokens de autenticación.
-    /// Expiración: 5 minutos.
+    /// Genera la clave para almacenar el token JWT en caché.
+    /// Formato: auth:tokens:{token}
     /// </summary>
-    public static CacheKey AuthToken(string token)
+    public static string AuthTokenKey(string value)
     {
-        return new CacheKey($"{CacheKey.AuthTokenPrefix}:{token}", TimeSpan.FromMinutes(5));
+        return $"auth:tokens:{value}";
     }
 
     /// <summary>
-    /// Genera una clave de caché para tokens de refresco.
-    /// Expiración: 30 días.
+    /// Crea una CacheKey con la clave y expiración para el token JWT.
     /// </summary>
-    public static CacheKey RefreshToken(string token)
+    public static CacheKey AuthTokenCreation(string value, TimeSpan expiration)
     {
-        return new CacheKey($"{CacheKey.RefreshTokenPrefix}:{token}", TimeSpan.FromDays(30));
+        return new CacheKey
+        {
+            Key = AuthTokenKey(value),
+            Expiration = expiration
+        };
     }
 
     /// <summary>
-    /// Genera una clave de caché para datos de usuario.
-    /// Expiración: 10 minutos.
+    /// Genera la clave para almacenar el refresh token en caché.
+    /// Formato: auth:refresh_tokens:{token}
     /// </summary>
-    public static CacheKey User(Guid userId)
+    public static string AuthRefreshTokenKey(string value)
     {
-        return new CacheKey($"{CacheKey.UserPrefix}:{userId}", TimeSpan.FromMinutes(10));
+        return $"auth:refresh_tokens:{value}";
     }
 
     /// <summary>
-    /// Genera una clave de caché para datos de un post.
-    /// Expiración: 5 minutos.
+    /// Crea una CacheKey con la clave y expiración para el refresh token.
     /// </summary>
-    public static CacheKey Post(Guid postId)
+    public static CacheKey AuthRefreshTokenCreation(string value, IConfiguration configuration)
     {
-        return new CacheKey($"{CacheKey.PostPrefix}:{postId}", TimeSpan.FromMinutes(5));
-    }
-
-    /// <summary>
-    /// Genera una clave de caché para listas paginadas.
-    /// Expiración: 2 minutos.
-    /// </summary>
-    public static CacheKey List(string listName, int page, int pageSize)
-    {
-        return new CacheKey(
-            $"{CacheKey.ListPrefix}:{listName}:p{page}:s{pageSize}", 
-            TimeSpan.FromMinutes(2));
+        return new CacheKey
+        {
+            Key = AuthRefreshTokenKey(value),
+            Expiration = TimeSpan.FromDays(Convert.ToInt32(
+                configuration[ConfigurationConstants.AUTH_REFRESH_TOKEN_EXPIRATION_IN_DAYS] ?? "15"))
+        };
     }
 }

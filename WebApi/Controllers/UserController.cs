@@ -10,14 +10,14 @@ namespace WebApi.Controllers;
 public class UserController(IUserService userService) : ControllerBase
 {
     [HttpPost("create")]
-    public IActionResult CreateUser([FromBody] CreateUserRequest model)
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest model)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var user = userService.Create(model);
+        var user = await userService.Create(model);
         return CreatedAtAction(nameof(GetUserById), new { id = user.UserId }, user);
     }
 
@@ -37,35 +37,35 @@ public class UserController(IUserService userService) : ControllerBase
     }
 
     [HttpPut("{id:guid}/update")]
-    public IActionResult UpdateUser([FromBody] UpdateUserRequest model, Guid id)
+    public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest model, Guid id)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var user = userService.Update(id, model);
+        var user = await userService.Update(id, model);
         return Ok(user);
     }
 
     [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/change-password")]
-    public IActionResult ChangeUserPassword(Guid id, [FromBody] ChangePasswordUserRequest model)
+    public async Task<IActionResult> ChangeUserPassword(Guid id, [FromBody] ChangePasswordUserRequest model)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        userService.ChangePassword(id, model);
+        await userService.ChangePassword(id, model);
         return NoContent();
     }
 
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}/delete")]
-    public IActionResult DeleteUser(Guid id)
+    public async Task<IActionResult> DeleteUser(Guid id)
     {
-        userService.Delete(id);
+        await userService.Delete(id);
         return NoContent();
     }
 }

@@ -1,25 +1,26 @@
-using Domain.Context;
-using Domain.Repositories;
+using Twitter.Domain.Database.SqlServer.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Domain;
+namespace Twitter.Domain;
 
+/// <summary>
+/// Extensión para registrar la configuración de dominio.
+/// </summary>
 public static class DependencyInjection
 {
     private const string DefaultConnection = "DefaultConnection";
 
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    /// <summary>
+    /// Registra el DbContext y configuraciones de base de datos.
+    /// </summary>
+    public static IServiceCollection AddDomainServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddSqlServer<TwitterDbContext>(
-            configuration.GetConnectionString(DefaultConnection));
-
-        // Repositorios
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPostRepository, PostRepository>();
-        services.AddScoped<IAuthRepository, AuthRepository>();
-        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddDbContext<TwitterDbContext>(options =>
+            options.UseSqlServer(configuration.GetConnectionString(DefaultConnection)));
 
         return services;
     }

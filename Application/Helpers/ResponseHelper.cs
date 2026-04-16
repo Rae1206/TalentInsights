@@ -1,18 +1,27 @@
-﻿using Application.Models.Responses;
+using Application.Models.Responses;
 
-namespace Application.Helpers
+namespace Application.Helpers;
+
+/// <summary>
+/// Helper estático para crear respuestas genéricas.
+/// </summary>
+public static class ResponseHelper
 {
-    public static class ResponseHelper
+    /// <summary>
+    /// Crea una respuesta genérica con datos, mensaje y errores opcionales.
+    /// </summary>
+    /// <typeparam name="T">Tipo de los datos</typeparam>
+    /// <param name="data">Datos a retornar</param>
+    /// <param name="errors">Lista de errores (opcional)</param>
+    /// <param name="message">Mensaje de la respuesta (opcional)</param>
+    /// <returns>GenericResponse con los datos proporcionados</returns>
+    public static GenericResponse<T> Create<T>(T data, List<string>? errors = null, string? message = null)
     {
-        public static GenericResponse<T> Create<T>(T data, string message = "Solicitud realizada correctamente")
+        return new GenericResponse<T>
         {
-            var response = new GenericResponse<T>
-            {
-                Data = data,
-                Message = message,
-            };
-
-            return response;
-        }
+            Data = data,
+            Message = message ?? "Solicitud realizada correctamente",
+            Errors = errors ?? []
+        };
     }
 }

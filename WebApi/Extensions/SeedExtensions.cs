@@ -1,6 +1,6 @@
-using Domain.Context;
-using Domain.Entities;
-using Domain.Repositories;
+using Twitter.Domain.Database.SqlServer.Context;
+using Twitter.Domain.Database.SqlServer.Entities;
+using Twitter.Domain.Interfaces.Repositories;
 using Shared.Constants;
 using Shared.Helpers;
 

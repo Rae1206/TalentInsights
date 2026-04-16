@@ -2,8 +2,8 @@ using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.Post;
 using Application.Models.Responses;
-using Domain.Entities;
-using Domain.Repositories;
+using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Database.SqlServer.Entities;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Exceptions;
@@ -11,11 +11,14 @@ using Shared.Helpers;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio para la gestión de posts.
+/// </summary>
 public class PostService(
-    IPostRepository postRepository,
+    IUnitOfWork unitOfWork,
     ILogger<PostService> logger) : IPostService
 {
-    public PostDto Create(CreatePostRequest model)
+    public async Task<PostDto> Create(CreatePostRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -31,7 +34,9 @@ public class PostService(
             CreatedAt = DateTimeHelper.UtcNow()
         };
 
-        var created = postRepository.Create(entity);
+        var created = unitOfWork.postRepository.Create(entity);
+        await unitOfWork.SaveChangesAsync();
+
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Post creado exitosamente con ID: {PostId}", created.PostId);
@@ -39,14 +44,14 @@ public class PostService(
         return MapToDto(created);
     }
 
-    public PostDto Update(Guid postId, UpdatePostRequest model)
+    public async Task<PostDto> Update(Guid postId, UpdatePostRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando actualizar post con ID: {PostId}", postId);
         }
 
-        var existing = postRepository.GetById(postId);
+        var existing = unitOfWork.postRepository.GetById(postId);
 
         if (existing is null)
         {
@@ -66,13 +71,15 @@ public class PostService(
             CreatedAt = existing.CreatedAt
         };
 
-        var result = postRepository.Update(postId, updated);
+        var result = unitOfWork.postRepository.Update(postId, updated);
 
         if (result is null)
         {
             logger.LogError("Error al actualizar post con ID: {PostId}", postId);
             throw new InvalidOperationException(ErrorConstants.INTERNAL_SERVER_ERROR);
         }
+
+        await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -89,7 +96,7 @@ public class PostService(
                 limit, offset, userId, isPublished);
         }
 
-        var posts = postRepository.GetAll(limit, offset, userId, isPublished);
+        var posts = unitOfWork.postRepository.GetAll(limit, offset, userId, isPublished);
         var dtos = posts.Select(MapToDto).ToList();
         return new GenericResponse<List<PostDto>> { Data = dtos };
     }
@@ -101,7 +108,7 @@ public class PostService(
             logger.LogDebug("Buscando post con ID: {PostId}", postId);
         }
 
-        var post = postRepository.GetById(postId);
+        var post = unitOfWork.postRepository.GetById(postId);
 
         if (post is null)
         {
@@ -115,14 +122,14 @@ public class PostService(
         return MapToDto(post);
     }
 
-    public void ChangeStatus(Guid postId, ChangePostStatusRequest model)
+    public async Task ChangeStatus(Guid postId, ChangePostStatusRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando cambiar estado del post con ID: {PostId}", postId);
         }
 
-        var result = postRepository.ChangeStatus(postId, model.IsPublished);
+        var result = unitOfWork.postRepository.ChangeStatus(postId, model.IsPublished);
 
         if (!result)
         {
@@ -130,20 +137,22 @@ public class PostService(
             throw new InvalidOperationException("No se pudo cambiar el estado del post");
         }
 
+        await unitOfWork.SaveChangesAsync();
+
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Estado del post cambiado exitosamente con ID: {PostId}", postId);
         }
     }
 
-    public void Delete(Guid postId)
+    public async Task Delete(Guid postId)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando eliminar post con ID: {PostId}", postId);
         }
 
-        var post = postRepository.GetById(postId);
+        var post = unitOfWork.postRepository.GetById(postId);
 
         if (post is null)
         {
@@ -154,13 +163,15 @@ public class PostService(
             throw new ResourceNotFoundException("post", postId);
         }
 
-        var result = postRepository.Delete(postId);
+        var result = unitOfWork.postRepository.Delete(postId);
 
         if (!result)
         {
             logger.LogError("Error al eliminar post con ID: {PostId}", postId);
             throw new InvalidOperationException("No se pudo eliminar el post");
         }
+
+        await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
