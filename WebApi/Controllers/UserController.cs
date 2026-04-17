@@ -2,11 +2,14 @@ using Application.Interfaces.Services;
 using Application.Models.Requests.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Twitter.WebApi.Atributos;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
+[DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
+
 public class UserController(IUserService userService) : ControllerBase
 {
     [HttpPost("create")]
