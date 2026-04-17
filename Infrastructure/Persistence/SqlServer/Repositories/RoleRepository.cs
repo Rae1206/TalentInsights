@@ -6,44 +6,48 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementación del repositorio de roles.
+/// Repositorio de roles - solo lectura.
 /// </summary>
-public class RoleRepository(TwitterDbContext context) : IRoleRepository
+public class RoleRepository : GenericRepository<Role, Guid>, IRoleRepository
 {
-    public Role? GetById(Guid roleId) =>
-        context.Roles.Find(roleId);
-
-    public Role? GetByName(string name) =>
-        context.Roles.FirstOrDefault(r => r.Name == name);
-
-    public List<Role> GetAll() =>
-        context.Roles.Where(r => r.IsActive).ToList();
-
-    public Guid? GetRoleIdByName(string roleName)
+    public RoleRepository(TwitterDbContext context) : base(context)
     {
-        return context.Roles
-            .Where(r => r.Name == roleName && r.IsActive)
-            .Select(r => r.RoleId)
-            .FirstOrDefault();
     }
 
-    public List<Role> GetRolesByUserId(Guid userId)
+    public Role? GetByName(string name) => _context.Roles.FirstOrDefault(r => r.Name == name);
+
+    public override List<Role> GetAll(int limit = 0, int offset = 0, System.Linq.Expressions.Expression<Func<Role, bool>>? filter = null)
     {
-        return context.UserRoles
-            .Where(ur => ur.UserId == userId)
-            .Include(ur => ur.Role)
-            .Select(ur => ur.Role)
+        var query = _context.Roles.Where(r => r.IsActive);
+
+        if (filter is not null)
+        {
+            query = query.Where(filter);
+        }
+
+        var normalizedOffset = Math.Max(offset, 0);
+        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
+
+        return query
+            .Skip(normalizedOffset)
+            .Take(normalizedLimit)
             .ToList();
     }
 
-    public string? GetPrimaryRoleName(Guid userId)
-    {
-        var userRole = context.UserRoles
-            .Where(ur => ur.UserId == userId)
-            .Include(ur => ur.Role)
-            .OrderBy(ur => ur.AssignedAt)
-            .FirstOrDefault();
-        
-        return userRole?.Role?.Name;
-    }
+    public Guid? GetRoleIdByName(string roleName) => _context.Roles
+        .Where(r => r.Name == roleName && r.IsActive)
+        .Select(r => r.RoleId)
+        .FirstOrDefault();
+
+    public List<Role> GetRolesByUserId(Guid userId) => _context.UserRoles
+        .Where(ur => ur.UserId == userId)
+        .Include(ur => ur.Role)
+        .Select(ur => ur.Role)
+        .ToList();
+
+    public string? GetPrimaryRoleName(Guid userId) => _context.UserRoles
+        .Where(ur => ur.UserId == userId)
+        .Include(ur => ur.Role)
+        .OrderBy(ur => ur.AssignedAt)
+        .FirstOrDefault()?.Role?.Name;
 }

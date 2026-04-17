@@ -3,11 +3,9 @@ using Twitter.Domain.Database.SqlServer.Entities;
 namespace Twitter.Domain.Interfaces.Repositories;
 
 /// <summary>
-/// Interfaz del repositorio de autenticación.
+/// Interfaz del repositorio de autenticación (solo lectura).
 /// </summary>
-public interface IAuthRepository
+public interface IAuthRepository : IGenericRepository<User, Guid>
 {
     User? GetByEmail(string email);
-    User? GetById(Guid id);
-    bool VerifyPassword(Guid userId, string password);
 }

@@ -1,12 +1,13 @@
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementación del repositorio de usuarios.
+/// Repositorio de usuarios.
+/// Hereda GenericRepository para lectura.
+/// Usa UnitOfWork para escritura.
 /// </summary>
 public class UserRepository : GenericRepository<User, Guid>, IUserRepository
 {
@@ -14,27 +15,9 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
     {
     }
 
-    public override User Create(User user)
+    public List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
     {
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-        _dbSet.Add(user);
-        return user;
-    }
-
-    public override User? GetById(Guid id)
-    {
-        return _dbSet
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.UserId == id);
-    }
-
-    public new List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
-    {
-        var query = _dbSet
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .AsQueryable();
+        var query = _context.Users.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(fullName))
             query = query.Where(u => u.FullName.Contains(fullName));
@@ -45,45 +28,21 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return query
-            .Skip(normalizedOffset)
-            .Take(normalizedLimit)
-            .ToList();
+        return query.Skip(normalizedOffset).Take(normalizedLimit).ToList();
     }
 
-    public override User? Update(Guid id, User user)
+    public User? GetByEmail(string email) 
+        => _context.Users.FirstOrDefault(u => u.Email == email);
+
+    public bool ExistsByEmail(string email) 
+        => _context.Users.Any(u => u.Email == email);
+
+    public string? GetPasswordHash(Guid userId)
     {
-        var entity = _dbSet.Find(id);
-        if (entity is null) return null;
-
-        entity.FullName = user.FullName;
-        entity.Email = user.Email;
-        entity.IsActive = user.IsActive;
-
-        return entity;
+        var user = _context.Users.Find(userId);
+        return user?.PasswordHash;
     }
 
-    public User? GetByEmail(string email) =>
-        _dbSet.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.Email == email);
-
-    public bool ExistsByEmail(string email) => 
-        _dbSet.Any(u => u.Email == email);
-
-    public bool ChangePassword(Guid userId, string newPassword)
-    {
-        var entity = _dbSet.Find(userId);
-        if (entity is null) return false;
-
-        entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-        return true;
-    }
-
-    public bool VerifyPassword(Guid userId, string password)
-    {
-        var entity = _dbSet.Find(userId);
-        if (entity is null) return false;
-
-        return BCrypt.Net.BCrypt.Verify(password, entity.PasswordHash);
-    }
+    public bool VerifyPassword(string passwordHash, string password)
+        => BCrypt.Net.BCrypt.Verify(password, passwordHash);
 }
