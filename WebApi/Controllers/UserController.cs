@@ -2,6 +2,7 @@ using Application.Interfaces.Services;
 using Application.Models.Requests.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Constants;
 using Twitter.WebApi.Atributos;
 
 namespace WebApi.Controllers;
@@ -70,5 +71,17 @@ public class UserController(IUserService userService) : ControllerBase
     {
         await userService.Delete(id);
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        var userIdClaim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
+            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
+
+        var userId = Guid.Parse(userIdClaim);
+        var user = userService.Get(userId);
+        return Ok(user);
     }
 }
