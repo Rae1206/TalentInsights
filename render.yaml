@@ -1,7 +1,7 @@
 services:
   - name: twitter-api
     build:
-      dockerfile: WebApi/Dockerfile
+      dockerfile: Dockerfile
       context: .
     envs:
       - key: ASPNETCORE_ENVIRONMENT
