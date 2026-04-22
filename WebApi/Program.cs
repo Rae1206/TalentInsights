@@ -19,6 +19,7 @@ try
     // Configuración infraestructura
     builder.ConfigureSerilog();
     builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer(); // <--falta esto
     builder.Services.AddOpenApi();
 
     // TODA la infraestructura consolidada (DbContext, Cache, Repositorios, Servicios, JWT)

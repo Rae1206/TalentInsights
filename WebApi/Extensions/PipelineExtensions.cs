@@ -6,11 +6,14 @@ public static class PipelineExtensions
 {
     public static void ConfigurePipeline(this WebApplication app)
     {
-        // Scalar API Reference (disponible en todos los entornos)
+        // Registrar todos los endpoints primero
+        app.MapControllers();
+
+        // Scalar API Reference (disponible en todos los entornos, debe llamarse DESPUÉS de MapControllers)
         app.MapScalarApiReference(options =>
         {
-            options.WithTitle("Twitter API");
-            options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+            options.WithTitle("Twitter API")
+                  .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
             options.Theme = ScalarTheme.Purple;
         });
 
@@ -25,8 +28,5 @@ public static class PipelineExtensions
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
-
-        // Endpoints
-        app.MapControllers();
     }
 }
