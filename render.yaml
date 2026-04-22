@@ -1,0 +1,22 @@
+services:
+  - name: twitter-api
+    build:
+      dockerfile: WebApi/Dockerfile
+      context: .
+    envs:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+    ports:
+      - 8080:8080
+    healthCheck:
+      path: /
+      intervalSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+    resources:
+      - kind: CPU
+        size: 0.5
+      - kind: Memory
+        size: 512Mi

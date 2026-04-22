@@ -78,4 +78,14 @@ public class AuthService(
             RefreshToken = refreshToken
         });
     }
+
+    public Task<GenericResponse<ResetPasswordResponse>> RequestPasswordReset(ResetPasswordRequest model)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<GenericResponse<LoginAuthResponse>> VerifyOtpAndResetPassword(VerifyOtpRequest model)
+    {
+        throw new NotImplementedException();
+    }
 }
