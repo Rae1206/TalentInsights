@@ -11,14 +11,14 @@ namespace WebApi.Controllers;
 [DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
 
-public class UserController(IUserService userService) : ControllerBase
+public class UserController(IUserService userService, IEmailService emailService) : ControllerBase
 {
     [HttpPost("test-email")]
     public async Task<IActionResult> TestEmail([FromQuery] string to)
     {
         try
         {
-            await smtp.SendEmailAsync(to, "Test desde Twitter API", "<h1>Test</h1><p>Email de prueba</p>", true);
+            await emailService.SendWelcomeEmailAsync(to, "Test User");
             return Ok(new { message = "Email enviado" });
         }
         catch (Exception ex)
