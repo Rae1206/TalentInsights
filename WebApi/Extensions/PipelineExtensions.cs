@@ -6,16 +6,18 @@ public static class PipelineExtensions
 {
     public static void ConfigurePipeline(this WebApplication app)
     {
-        // Endpoints solo para desarrollo
+        // Scalar API Reference (disponible en todos los entornos)
+        app.MapScalarApiReference(options =>
+        {
+            options.WithTitle("Twitter API");
+            options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+            options.Theme = ScalarTheme.Purple;
+        });
+
+        // OpenAPI para desarrollo
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            app.MapScalarApiReference(options =>
-            {
-                options.WithTitle("Documentación de Twitter API");
-                options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-                options.Theme = ScalarTheme.Purple;
-            });
         }
 
         // Pipeline de middleware
